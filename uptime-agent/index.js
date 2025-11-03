@@ -140,12 +140,25 @@ async function pollKumaMonitors() {
     // Note: Kuma's API may require auth; adjust as needed
     const res = await axios.get(`${KUMA_URL}/api/status-page/heartbeat/${KUMA_STATUS_PAGE_SLUG}`, { timeout: 5000 });
     if (res.data && res.data.heartbeatList) {
+      // Build monitor name lookup from publicGroupList
+      const monitorNames = {};
+      if (res.data.publicGroupList && Array.isArray(res.data.publicGroupList)) {
+        res.data.publicGroupList.forEach(group => {
+          if (group.monitorList && Array.isArray(group.monitorList)) {
+            group.monitorList.forEach(monitor => {
+              monitorNames[monitor.id] = monitor.name || monitor.pathName || `Monitor ${monitor.id}`;
+            });
+          }
+        });
+      }
+      
       const devices = Object.entries(res.data.heartbeatList).map(([monitorId, beats]) => {
         const latestBeat = beats && beats.length > 0 ? beats[beats.length - 1] : null;
+        const id = parseInt(monitorId, 10);
         return {
           vanId: VAN_ID,
-          monitorId: parseInt(monitorId, 10),
-          name: res.data.publicGroupList?.find(g => g.monitorList?.some(m => m.id === parseInt(monitorId, 10)))?.monitorList?.find(m => m.id === parseInt(monitorId, 10))?.name || `Device ${monitorId}`,
+          monitorId: id,
+          name: monitorNames[id] || `Device ${id}`,
           status: latestBeat?.status === 1 ? 'up' : 'down',
           latency: latestBeat?.ping || 0,
           timestamp: new Date().toISOString(),
