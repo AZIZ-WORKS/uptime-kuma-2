@@ -12,6 +12,7 @@ const DASHBOARD_WS_URL = process.env.DASHBOARD_WS_URL || '';
 const VAN_ID = process.env.VAN_ID || 'van-unknown';
 const UPDATE_INTERVAL = parseInt(process.env.UPDATE_INTERVAL || '10000', 10);
 const KUMA_URL = process.env.KUMA_URL || 'http://localhost:3001';
+const KUMA_STATUS_PAGE_SLUG = process.env.KUMA_STATUS_PAGE_SLUG || 'ob1test';
 
 let socket = null;
 let lastStatus = null;
@@ -67,6 +68,10 @@ async function pollKumaOnce() {
       socket.emit('agent:update', payload);
     }
     lastStatus = payload;
+    
+    // Also fetch monitors/devices and send device-level updates
+    await pollKumaMonitors();
+    
     return payload;
   } catch (err) {
     const latency = Date.now() - start;
@@ -83,6 +88,34 @@ async function pollKumaOnce() {
     }
     lastStatus = payload;
     return payload;
+  }
+}
+
+async function pollKumaMonitors() {
+  try {
+    // Fetch monitor list from Kuma API (this requires authentication or public API access)
+    // For now, we'll use a simple heartbeat list endpoint if available
+    // Note: Kuma's API may require auth; adjust as needed
+    const res = await axios.get(`${KUMA_URL}/api/status-page/heartbeat/${KUMA_STATUS_PAGE_SLUG}`, { timeout: 5000 });
+    if (res.data && res.data.heartbeatList) {
+      const devices = Object.entries(res.data.heartbeatList).map(([monitorId, beats]) => {
+        const latestBeat = beats && beats.length > 0 ? beats[beats.length - 1] : null;
+        return {
+          vanId: VAN_ID,
+          monitorId: parseInt(monitorId, 10),
+          name: res.data.publicGroupList?.find(g => g.monitorList?.some(m => m.id === parseInt(monitorId, 10)))?.monitorList?.find(m => m.id === parseInt(monitorId, 10))?.name || `Device ${monitorId}`,
+          status: latestBeat?.status === 1 ? 'up' : 'down',
+          latency: latestBeat?.ping || 0,
+          timestamp: new Date().toISOString(),
+        };
+      });
+      
+      if (socket && socket.connected && devices.length > 0) {
+        socket.emit('agent:devices', { vanId: VAN_ID, devices, timestamp: new Date().toISOString() });
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to poll Kuma monitors:', err.message);
   }
 }
 

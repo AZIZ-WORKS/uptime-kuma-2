@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import DeviceCharts from '../components/DeviceCharts.jsx';
 
 function getApiBase() {
   const env = import.meta.env.VITE_API_URL;
@@ -39,7 +40,7 @@ export default function Vans() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-4">Vans</h1>
+      <h1 className="text-2xl font-semibold mb-4">Vans & Devices</h1>
       <div className="space-y-4">
         {rows.map((v) => (
           <div key={v.id} className="bg-white rounded border">
@@ -47,17 +48,17 @@ export default function Vans() {
               <div className="flex-1">
                 <div className="font-medium">{v.name} ({v.id})</div>
                 <div className="text-sm text-gray-600">Status: {v.status || 'unknown'} • Latency: {v.last_latency ?? '-'}ms • MAC: {v.mac || '-'}</div>
-                {v.kuma_status_url && (
-                  <div className="text-sm mt-1 flex gap-2">
-                    <button
-                      className="text-blue-700 underline"
-                      onClick={() => toggleExpand(v.id)}
-                    >
-                      {expanded[v.id] ? 'Hide' : 'Show'} Status Page
-                    </button>
-                    <a className="text-blue-700 underline" href={v.kuma_status_url} target="_blank" rel="noreferrer">Open in New Tab</a>
-                  </div>
-                )}
+                <div className="text-sm mt-1 flex gap-2">
+                  <button
+                    className="text-blue-700 underline"
+                    onClick={() => toggleExpand(v.id)}
+                  >
+                    {expanded[v.id] ? 'Hide' : 'Show'} Devices
+                  </button>
+                  {v.kuma_status_url && (
+                    <a className="text-blue-700 underline" href={v.kuma_status_url} target="_blank" rel="noreferrer">Open Kuma</a>
+                  )}
+                </div>
               </div>
               <button
                 className={`px-3 py-1 rounded ${v.mac ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`}
@@ -67,14 +68,9 @@ export default function Vans() {
                 Wake
               </button>
             </div>
-            {v.kuma_status_url && expanded[v.id] && (
-              <div className="border-t p-2">
-                <iframe
-                  src={v.kuma_status_url}
-                  className="w-full"
-                  style={{ height: '600px', border: 'none' }}
-                  title={`Status page for ${v.name}`}
-                />
+            {expanded[v.id] && (
+              <div className="border-t p-4">
+                <DeviceCharts vanId={v.id} />
               </div>
             )}
           </div>

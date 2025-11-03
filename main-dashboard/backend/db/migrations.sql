@@ -27,7 +27,20 @@ CREATE TABLE IF NOT EXISTS logs (
   FOREIGN KEY(van_id) REFERENCES vans(id)
 );
 
+CREATE TABLE IF NOT EXISTS devices (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  van_id TEXT NOT NULL,
+  monitor_id INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  status TEXT NOT NULL,
+  latency INTEGER,
+  timestamp TEXT NOT NULL,
+  FOREIGN KEY(van_id) REFERENCES vans(id),
+  UNIQUE(van_id, monitor_id, timestamp)
+);
+
 CREATE INDEX IF NOT EXISTS idx_logs_van_time ON logs(van_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_devices_van_monitor ON devices(van_id, monitor_id, timestamp DESC);
 
 
 

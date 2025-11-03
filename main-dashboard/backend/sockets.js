@@ -38,6 +38,25 @@ export default function registerSockets(io, getDb) {
       io.emit('dashboard:update', payload);
     });
 
+    socket.on('agent:devices', async (data) => {
+      const db = getDb();
+      const { vanId, devices, timestamp } = data || {};
+      if (!vanId || !devices || !Array.isArray(devices)) return;
+      
+      for (const device of devices) {
+        try {
+          await db.run(
+            'INSERT INTO devices (van_id, monitor_id, name, status, latency, timestamp) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(van_id, monitor_id, timestamp) DO NOTHING',
+            vanId, device.monitorId, device.name, device.status, device.latency, device.timestamp
+          );
+        } catch (err) {
+          console.warn('Failed to insert device:', err.message);
+        }
+      }
+      
+      io.emit('dashboard:devices', { vanId, devices, timestamp });
+    });
+
     socket.on('disconnect', () => {
       registry.deleteBySocket(socket.id);
     });
