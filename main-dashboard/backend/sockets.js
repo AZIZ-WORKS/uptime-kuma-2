@@ -20,11 +20,12 @@ export default function registerSockets(io, getDb) {
   io.on('connection', (socket) => {
     socket.on('agent:hello', async (data) => {
       const db = getDb();
-      const { vanId, agentApiUrl } = data || {};
+      const { vanId, agentApiUrl, kumaStatusUrl } = data || {};
       if (!vanId) return;
       registry.set(vanId, socket.id);
-      await db.run('UPDATE vans SET last_seen = ?, agent_api_url = ? WHERE id = ?', Date.now(), agentApiUrl || null, vanId);
-      io.emit('dashboard:van_seen', { vanId, agentApiUrl, at: new Date().toISOString() });
+      await db.run('UPDATE vans SET last_seen = ?, agent_api_url = ?, kuma_status_url = ? WHERE id = ?', 
+        Date.now(), agentApiUrl || null, kumaStatusUrl || null, vanId);
+      io.emit('dashboard:van_seen', { vanId, agentApiUrl, kumaStatusUrl, at: new Date().toISOString() });
     });
 
     socket.on('agent:update', async (payload) => {

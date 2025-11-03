@@ -30,7 +30,7 @@ services:
     container_name: agent-ngrok
     restart: unless-stopped
     environment:
-      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN_AGENT}
     command: http agent:5000 --log=stdout
     depends_on:
       - agent
@@ -40,7 +40,7 @@ services:
     container_name: kuma-ngrok
     restart: unless-stopped
     environment:
-      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN_KUMA}
     command: http kuma:3001 --log=stdout
     depends_on:
       - kuma

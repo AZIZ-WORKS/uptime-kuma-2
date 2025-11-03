@@ -24,17 +24,33 @@ function connectSocket() {
   }
   console.log(`Connecting to dashboard at ${DASHBOARD_WS_URL}...`);
   socket = ioClient(DASHBOARD_WS_URL, {
-    transports: ['websocket'],
+    transports: ['polling', 'websocket'],
     reconnection: true,
     reconnectionAttempts: Infinity,
     reconnectionDelay: 2000,
   });
 
-  socket.on('connect', () => {
+  socket.on('connect', async () => {
     console.log('✓ Connected to dashboard');
+    
+    // Auto-detect Kuma status page URL
+    let kumaStatusUrl = null;
+    try {
+      const res = await axios.get(`${KUMA_URL}/api/status-page/heartbeat/${KUMA_STATUS_PAGE_SLUG}`, { timeout: 3000 });
+      if (res.data) {
+        // Build the public status page URL
+        const kumaPublicUrl = process.env.KUMA_PUBLIC_URL || KUMA_URL.replace('http://kuma:', 'http://localhost:');
+        kumaStatusUrl = `${kumaPublicUrl}/status-page/${KUMA_STATUS_PAGE_SLUG}`;
+        console.log(`Detected Kuma status page: ${kumaStatusUrl}`);
+      }
+    } catch (err) {
+      console.warn('Could not auto-detect Kuma status page:', err.message);
+    }
+    
     socket.emit('agent:hello', {
       vanId: VAN_ID,
       agentApiUrl: process.env.AGENT_PUBLIC_URL || null,
+      kumaStatusUrl,
     });
     // Trigger immediate poll
     pollKumaOnce().catch(err => console.error('Initial poll failed:', err));
