@@ -27,22 +27,13 @@ services:
 
   ngrok:
     image: ngrok/ngrok:latest
-    container_name: agent-ngrok
+    container_name: van-ngrok
     restart: unless-stopped
-    environment:
-      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN_AGENT}
-    command: http agent:5000 --log=stdout
+    volumes:
+      - ./ngrok.yml:/etc/ngrok.yml
+    command: start --all --config /etc/ngrok.yml
     depends_on:
       - agent
-
-  kuma-ngrok:
-    image: ngrok/ngrok:latest
-    container_name: kuma-ngrok
-    restart: unless-stopped
-    environment:
-      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN_KUMA}
-    command: http kuma:3001 --log=stdout
-    depends_on:
       - kuma
 
 volumes:

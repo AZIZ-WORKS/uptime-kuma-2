@@ -1,0 +1,10 @@
+version: "2"
+authtoken: YOUR_NGROK_TOKEN_HERE
+tunnels:
+  agent:
+    proto: http
+    addr: agent:5000
+  kuma:
+    proto: http
+    addr: kuma:3001
+
