@@ -22,6 +22,7 @@ function connectSocket() {
     console.warn('DASHBOARD_WS_URL not set, skipping socket connection');
     return;
   }
+  console.log(`Connecting to dashboard at ${DASHBOARD_WS_URL}...`);
   socket = ioClient(DASHBOARD_WS_URL, {
     transports: ['websocket'],
     reconnection: true,
@@ -30,15 +31,21 @@ function connectSocket() {
   });
 
   socket.on('connect', () => {
-    console.log('Connected to dashboard');
+    console.log('✓ Connected to dashboard');
     socket.emit('agent:hello', {
       vanId: VAN_ID,
       agentApiUrl: process.env.AGENT_PUBLIC_URL || null,
     });
+    // Trigger immediate poll
+    pollKumaOnce().catch(err => console.error('Initial poll failed:', err));
   });
 
   socket.on('disconnect', (reason) => {
-    console.warn('Disconnected from dashboard:', reason);
+    console.warn('✗ Disconnected from dashboard:', reason);
+  });
+
+  socket.on('connect_error', (err) => {
+    console.error('Connection error:', err.message);
   });
 
   socket.on('agent:wake', async ({ mac }) => {
