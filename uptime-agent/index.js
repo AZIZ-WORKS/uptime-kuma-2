@@ -9,15 +9,21 @@ app.use(express.json());
 
 const PORT = parseInt(process.env.PORT || '5000', 10);
 const DASHBOARD_WS_URL = process.env.DASHBOARD_WS_URL || '';
+const DASHBOARD_API_URL = process.env.DASHBOARD_API_URL || DASHBOARD_WS_URL || '';
 const VAN_ID = process.env.VAN_ID || 'van-unknown';
 const UPDATE_INTERVAL = parseInt(process.env.UPDATE_INTERVAL || '10000', 10);
 const KUMA_URL = process.env.KUMA_URL || 'http://localhost:3001';
 const KUMA_STATUS_PAGE_SLUG = process.env.KUMA_STATUS_PAGE_SLUG || 'ob1test';
+const USE_REST_MODE = process.env.USE_REST_MODE === 'true';
 
 let socket = null;
 let lastStatus = null;
 
 function connectSocket() {
+  if (USE_REST_MODE) {
+    console.log('REST mode enabled, skipping WebSocket connection');
+    return;
+  }
   if (!DASHBOARD_WS_URL) {
     console.warn('DASHBOARD_WS_URL not set, skipping socket connection');
     return;
@@ -87,9 +93,16 @@ async function pollKumaOnce() {
       latency,
       timestamp: new Date().toISOString(),
     };
+    
+    // Send via WebSocket if connected, otherwise REST API
     if (socket && socket.connected) {
       socket.emit('agent:update', payload);
+    } else if (USE_REST_MODE && DASHBOARD_API_URL) {
+      await axios.post(`${DASHBOARD_API_URL}/api/agent/update`, payload, {
+        headers: { 'ngrok-skip-browser-warning': 'true' }
+      }).catch(err => console.warn('REST update failed:', err.message));
     }
+    
     lastStatus = payload;
     
     // Also fetch monitors/devices and send device-level updates
@@ -106,9 +119,15 @@ async function pollKumaOnce() {
       timestamp: new Date().toISOString(),
       error: String(err?.message || err),
     };
+    
     if (socket && socket.connected) {
       socket.emit('agent:update', payload);
+    } else if (USE_REST_MODE && DASHBOARD_API_URL) {
+      await axios.post(`${DASHBOARD_API_URL}/api/agent/update`, payload, {
+        headers: { 'ngrok-skip-browser-warning': 'true' }
+      }).catch(err => console.warn('REST update failed:', err.message));
     }
+    
     lastStatus = payload;
     return payload;
   }
@@ -133,8 +152,14 @@ async function pollKumaMonitors() {
         };
       });
       
+      const devicesPayload = { vanId: VAN_ID, devices, timestamp: new Date().toISOString() };
+      
       if (socket && socket.connected && devices.length > 0) {
-        socket.emit('agent:devices', { vanId: VAN_ID, devices, timestamp: new Date().toISOString() });
+        socket.emit('agent:devices', devicesPayload);
+      } else if (USE_REST_MODE && DASHBOARD_API_URL && devices.length > 0) {
+        await axios.post(`${DASHBOARD_API_URL}/api/agent/devices`, devicesPayload, {
+          headers: { 'ngrok-skip-browser-warning': 'true' }
+        }).catch(err => console.warn('REST devices update failed:', err.message));
       }
     }
   } catch (err) {

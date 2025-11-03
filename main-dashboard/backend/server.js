@@ -43,6 +43,7 @@ import authRouter from './routes/auth.js';
 import vansRouter from './routes/vans.js';
 import logsRouter from './routes/logs.js';
 import devicesRouter from './routes/devices.js';
+import agentUpdatesRouter from './routes/agent-updates.js';
 
 app.use((req, _res, next) => {
   req.db = db;
@@ -53,6 +54,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/vans', vansRouter);
 app.use('/api/logs', logsRouter);
 app.use('/api/devices', devicesRouter);
+app.use('/api/agent', agentUpdatesRouter);
 
 // Sockets
 import registerSockets from './sockets.js';
