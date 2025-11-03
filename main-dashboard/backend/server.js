@@ -63,6 +63,12 @@ app.locals.io = io;
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
+app.get('/api/discover', (_req, res) => {
+  // Return the dashboard URL for agents to discover
+  const dashboardUrl = process.env.DASHBOARD_PUBLIC_URL || process.env.VITE_API_URL || 'http://localhost:4000';
+  res.json({ dashboardUrl });
+});
+
 initDb().then(async () => {
   // Seed admin if not exists
   const seed = (await import('./db/seed.js')).default;

@@ -8,8 +8,9 @@ const app = express();
 app.use(express.json());
 
 const PORT = parseInt(process.env.PORT || '5000', 10);
-const DASHBOARD_WS_URL = process.env.DASHBOARD_WS_URL || '';
-const DASHBOARD_API_URL = process.env.DASHBOARD_API_URL || DASHBOARD_WS_URL || '';
+let DASHBOARD_WS_URL = process.env.DASHBOARD_WS_URL || '';
+let DASHBOARD_API_URL = process.env.DASHBOARD_API_URL || DASHBOARD_WS_URL || '';
+const DASHBOARD_DISCOVERY_URL = process.env.DASHBOARD_DISCOVERY_URL || '';
 const VAN_ID = process.env.VAN_ID || 'van-unknown';
 const UPDATE_INTERVAL = parseInt(process.env.UPDATE_INTERVAL || '10000', 10);
 const KUMA_URL = process.env.KUMA_URL || 'http://localhost:3001';
@@ -18,6 +19,25 @@ const USE_REST_MODE = process.env.USE_REST_MODE === 'true';
 
 let socket = null;
 let lastStatus = null;
+
+// Auto-discover dashboard URL from a discovery endpoint
+async function discoverDashboardUrl() {
+  if (!DASHBOARD_DISCOVERY_URL) return;
+  try {
+    console.log(`Discovering dashboard URL from ${DASHBOARD_DISCOVERY_URL}...`);
+    const res = await axios.get(DASHBOARD_DISCOVERY_URL, { 
+      timeout: 5000,
+      headers: { 'ngrok-skip-browser-warning': 'true' }
+    });
+    if (res.data && res.data.dashboardUrl) {
+      DASHBOARD_API_URL = res.data.dashboardUrl;
+      DASHBOARD_WS_URL = res.data.dashboardUrl;
+      console.log(`✓ Discovered dashboard at: ${DASHBOARD_API_URL}`);
+    }
+  } catch (err) {
+    console.warn('Failed to discover dashboard URL:', err.message);
+  }
+}
 
 function connectSocket() {
   if (USE_REST_MODE) {
@@ -207,10 +227,19 @@ app.post('/wake', async (req, res) => {
 
 const server = http.createServer(app);
 
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`uptime-agent listening on :${PORT}`);
+  
+  // Try to discover dashboard URL first
+  await discoverDashboardUrl();
+  
   connectSocket();
   setInterval(pollKumaOnce, UPDATE_INTERVAL);
+  
+  // Refresh dashboard URL periodically (every 5 minutes)
+  if (DASHBOARD_DISCOVERY_URL) {
+    setInterval(discoverDashboardUrl, 5 * 60 * 1000);
+  }
 });
 
 

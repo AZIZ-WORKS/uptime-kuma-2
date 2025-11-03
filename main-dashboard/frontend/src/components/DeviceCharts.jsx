@@ -56,14 +56,26 @@ export default function DeviceCharts({ vanId }) {
 
     const handleDevices = (payload) => {
       if (payload.vanId !== vanId) return;
-      setDevices(payload.devices || []);
+      
+      // Update devices state - merge with existing
+      setDevices((prev) => {
+        const newDevices = payload.devices || [];
+        if (newDevices.length === 0) return prev;
+        
+        const deviceMap = new Map(prev.map(d => [d.monitorId || d.monitor_id, d]));
+        newDevices.forEach(d => {
+          deviceMap.set(d.monitorId, d);
+        });
+        return Array.from(deviceMap.values());
+      });
       
       // Append to history
       setHistory((prev) => {
         const updated = { ...prev };
         (payload.devices || []).forEach((d) => {
-          if (!updated[d.monitorId]) updated[d.monitorId] = [];
-          updated[d.monitorId] = [...updated[d.monitorId], d].slice(-100);
+          const key = d.monitorId;
+          if (!updated[key]) updated[key] = [];
+          updated[key] = [...updated[key], d].slice(-100);
         });
         return updated;
       });
