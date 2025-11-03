@@ -1,0 +1,52 @@
+version: '3.8'
+services:
+  kuma:
+    image: louislam/uptime-kuma:1
+    container_name: kuma
+    restart: unless-stopped
+    ports:
+      - '3001:3001'
+    volumes:
+      - kuma-data:/app/data
+
+  agent:
+    build: .
+    container_name: uptime-agent
+    restart: unless-stopped
+    environment:
+      - DASHBOARD_WS_URL=${DASHBOARD_WS_URL}
+      - VAN_ID=${VAN_ID}
+      - PORT=5000
+      - UPDATE_INTERVAL=${UPDATE_INTERVAL:-10000}
+      - KUMA_URL=http://kuma:3001
+      - AGENT_PUBLIC_URL=${AGENT_PUBLIC_URL}
+    depends_on:
+      - kuma
+    ports:
+      - '5000:5000'
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: agent-ngrok
+    restart: unless-stopped
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    command: http agent:5000 --log=stdout
+    depends_on:
+      - agent
+
+  kuma-ngrok:
+    image: ngrok/ngrok:latest
+    container_name: kuma-ngrok
+    restart: unless-stopped
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    command: http kuma:3001 --log=stdout
+    depends_on:
+      - kuma
+
+volumes:
+  kuma-data:
+
+
+

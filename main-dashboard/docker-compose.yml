@@ -1,0 +1,47 @@
+version: '3.8'
+services:
+  backend:
+    build: ./backend
+    container_name: dashboard-backend
+    restart: unless-stopped
+    environment:
+      - PORT=4000
+      - JWT_SECRET=${JWT_SECRET:-devsecret}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - DB_PATH=/data/database.sqlite
+    volumes:
+      - dashboard-data:/data
+    ports:
+      - '4000:4000'
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:4000}
+        VITE_WS_URL: ${VITE_WS_URL:-http://localhost:4000}
+    container_name: dashboard-frontend
+    restart: unless-stopped
+    environment:
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:4000}
+      - VITE_WS_URL=${VITE_WS_URL:-http://localhost:4000}
+    ports:
+      - '5173:5173'
+    depends_on:
+      - backend
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: dashboard-ngrok
+    restart: unless-stopped
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    command: http backend:4000 --log=stdout
+    depends_on:
+      - backend
+
+volumes:
+  dashboard-data:
+
+
+
