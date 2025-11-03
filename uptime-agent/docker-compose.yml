@@ -15,10 +15,14 @@ services:
     restart: unless-stopped
     environment:
       - DASHBOARD_WS_URL=${DASHBOARD_WS_URL}
+      - DASHBOARD_API_URL=${DASHBOARD_API_URL}
+      - USE_REST_MODE=${USE_REST_MODE:-false}
       - VAN_ID=${VAN_ID}
       - PORT=5000
       - UPDATE_INTERVAL=${UPDATE_INTERVAL:-10000}
       - KUMA_URL=http://kuma:3001
+      - KUMA_STATUS_PAGE_SLUG=${KUMA_STATUS_PAGE_SLUG:-ob1test}
+      - KUMA_PUBLIC_URL=${KUMA_PUBLIC_URL}
       - AGENT_PUBLIC_URL=${AGENT_PUBLIC_URL}
     depends_on:
       - kuma
