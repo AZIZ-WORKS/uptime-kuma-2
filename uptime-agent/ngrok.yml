@@ -1,5 +1,6 @@
 version: "2"
 authtoken: 34yGvTDjQ8EkLAMMRVLXDDq4xvB_2uYAHM9Szf9KQdrQcQEQt
+web_addr: 0.0.0.0:4040
 tunnels:
   agent:
     proto: http

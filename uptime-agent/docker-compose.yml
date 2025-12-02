@@ -36,6 +36,8 @@ services:
     volumes:
       - ./ngrok.yml:/etc/ngrok.yml
     command: start --all --config /etc/ngrok.yml
+    ports:
+      - '4040:4040'  # Expose ngrok web interface
     depends_on:
       - agent
       - kuma
