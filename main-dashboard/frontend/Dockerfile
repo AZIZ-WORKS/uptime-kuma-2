@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -7,21 +7,24 @@ RUN npm install
 
 COPY . .
 
-# Accept build-time API/WS URLs for Vite
-ARG VITE_API_URL
-ARG VITE_WS_URL
-ENV VITE_API_URL=$VITE_API_URL
-ENV VITE_WS_URL=$VITE_WS_URL
-
-# Build the frontend
+# Build the frontend (Vite will use env vars from runtime via import.meta.env)
 RUN npm run build
+
+# Production stage - serve with nginx
+FROM nginx:alpine
+
+# Copy built assets
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copy custom nginx config that accepts any hostname
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Remove default nginx config
+RUN rm -f /etc/nginx/conf.d/default.conf.dpkg-dist
 
 EXPOSE 5173
 
-ENV NODE_ENV=production
-
-# Serve the built app with Vite preview (bind on all interfaces)
-CMD ["npm", "run", "preview", "--", "--host", "--port", "5173"]
+CMD ["nginx", "-g", "daemon off;"]
 
 
 

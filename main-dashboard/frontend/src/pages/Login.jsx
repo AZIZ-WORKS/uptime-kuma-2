@@ -2,8 +2,12 @@ import React, { useState } from 'react';
 import axios from 'axios';
 
 function getApiBase() {
+  const stored = localStorage.getItem('BACKEND_URL');
+  if (stored) return stored;
+  
   const env = import.meta.env.VITE_API_URL;
   if (env) return env;
+  
   try {
     const u = new URL(window.location.origin);
     if (u.port === '5173') u.port = '4000';

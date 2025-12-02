@@ -3,6 +3,7 @@ import http from 'http';
 import axios from 'axios';
 import { io as ioClient } from 'socket.io-client';
 import wol from 'wake_on_lan';
+import startNetworkMonitoring, { getMetrics, getNetworkData } from './network-monitor.js';
 
 const app = express();
 app.use(express.json());
@@ -227,6 +228,17 @@ app.post('/wake', async (req, res) => {
 
 const server = http.createServer(app);
 
+// Add Prometheus metrics endpoint
+app.get('/metrics', (req, res) => {
+  res.set('Content-Type', 'text/plain; version=0.0.4');
+  res.send(getMetrics());
+});
+
+// Add network data API endpoint
+app.get('/network', (req, res) => {
+  res.json(getNetworkData());
+});
+
 server.listen(PORT, async () => {
   console.log(`uptime-agent listening on :${PORT}`);
   
@@ -235,6 +247,9 @@ server.listen(PORT, async () => {
   
   connectSocket();
   setInterval(pollKumaOnce, UPDATE_INTERVAL);
+  
+  // Start network monitoring
+  startNetworkMonitoring();
   
   // Refresh dashboard URL periodically (every 5 minutes)
   if (DASHBOARD_DISCOVERY_URL) {

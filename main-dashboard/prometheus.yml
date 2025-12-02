@@ -1,0 +1,25 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Scrape metrics from all registered vans
+  - job_name: 'vans'
+    static_configs:
+      # This will be dynamically updated, but here's an example
+      # Add your van agent URLs here
+      - targets: []
+        labels:
+          van_id: 'example'
+    
+  # For now, we'll configure van targets manually or via file_sd_configs
+  # File-based service discovery (more flexible)
+  - job_name: 'vans-file'
+    file_sd_configs:
+      - files:
+          - '/etc/prometheus/targets.json'
+        refresh_interval: 30s
+
+
+
+

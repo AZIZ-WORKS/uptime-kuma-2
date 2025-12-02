@@ -1,10 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import DeviceCharts from '../components/DeviceCharts.jsx';
+import { socket } from '../sockets.js';
 
 function getApiBase() {
+  const stored = localStorage.getItem('BACKEND_URL');
+  if (stored) return stored;
+  
   const env = import.meta.env.VITE_API_URL;
   if (env) return env;
+  
   try {
     const u = new URL(window.location.origin);
     if (u.port === '5173') u.port = '4000';
@@ -18,15 +23,39 @@ export default function Vans() {
   const [rows, setRows] = useState([]);
   const [expanded, setExpanded] = useState({});
 
-  async function load() {
+  const load = useCallback(async () => {
     const token = localStorage.getItem('token');
-    const { data } = await axios.get(`${getApiBase()}/api/vans`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    setRows(data);
-  }
+    try {
+      const { data } = await axios.get(`${getApiBase()}/api/vans`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setRows(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.warn('Failed to load vans:', err);
+      setRows([]);
+    }
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { 
+    load();
+    
+    // Listen for van updates without reloading entire list
+    const handleVanUpdate = (payload) => {
+      setRows(prev => {
+        if (!Array.isArray(prev)) return prev;
+        return prev.map(v => 
+          v.id === payload.vanId 
+            ? { ...v, status: payload.status, last_latency: payload.latency, last_seen: Date.now() }
+            : v
+        );
+      });
+    };
+    
+    socket.on('dashboard:update', handleVanUpdate);
+    return () => {
+      socket.off('dashboard:update', handleVanUpdate);
+    };
+  }, [load]);
 
   async function wake(id) {
     const token = localStorage.getItem('token');
@@ -42,7 +71,7 @@ export default function Vans() {
     <div>
       <h1 className="text-2xl font-semibold mb-4">Vans & Devices</h1>
       <div className="space-y-4">
-        {rows.map((v) => (
+        {Array.isArray(rows) && rows.map((v) => (
           <div key={v.id} className="bg-white rounded border">
             <div className="p-3 flex items-center justify-between">
               <div className="flex-1">
@@ -70,7 +99,7 @@ export default function Vans() {
             </div>
             {expanded[v.id] && (
               <div className="border-t p-4">
-                <DeviceCharts vanId={v.id} />
+                <DeviceCharts key={`devices-${v.id}`} vanId={v.id} />
               </div>
             )}
           </div>

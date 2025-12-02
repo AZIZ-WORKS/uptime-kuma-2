@@ -1,18 +1,32 @@
 import { io } from 'socket.io-client';
 
-const fallbackWs = (() => {
+// Auto-detect backend URL based on how frontend is accessed
+const getBackendUrl = () => {
+  const stored = localStorage.getItem('BACKEND_URL');
+  if (stored) return stored;
+  
+  const env = import.meta.env.VITE_WS_URL;
+  if (env) return env;
+  
   try {
-    const u = new URL(window.location.origin);
-    if (u.port === '5173') u.port = '4000';
-    return u.origin;
+    const currentUrl = new URL(window.location.origin);
+    
+    // Local development: same host, different port
+    if (currentUrl.port === '5173') {
+      currentUrl.port = '4000';
+      return currentUrl.origin;
+    }
+    
+    // For ngrok or other cases, use the setup screen
+    return 'http://localhost:4000';
   } catch (_) {
     return 'http://localhost:4000';
   }
-})();
+};
 
-const wsUrl = import.meta.env.VITE_WS_URL || fallbackWs;
+const wsUrl = getBackendUrl();
 
-export const socket = io(wsUrl, { transports: ['websocket'], autoConnect: true });
+export const socket = io(wsUrl, { transports: ['websocket', 'polling'], autoConnect: true });
 
 
 

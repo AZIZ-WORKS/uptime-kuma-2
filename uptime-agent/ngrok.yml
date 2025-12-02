@@ -1,5 +1,5 @@
 version: "2"
-authtoken: YOUR_NGROK_TOKEN_HERE
+authtoken: 34yGvTDjQ8EkLAMMRVLXDDq4xvB_2uYAHM9Szf9KQdrQcQEQt
 tunnels:
   agent:
     proto: http

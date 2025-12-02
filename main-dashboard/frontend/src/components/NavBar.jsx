@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-export default function NavBar() {
+export default function NavBar({ backendUrl, onChangeBackend }) {
   const token = localStorage.getItem('token');
   return (
     <div className="bg-white border-b">
@@ -13,7 +13,16 @@ export default function NavBar() {
             <Link to="/vans" className="text-blue-700">Vans</Link>
           </>
         )}
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-4">
+          {backendUrl && (
+            <button 
+              onClick={onChangeBackend}
+              className="text-xs text-gray-600 hover:text-gray-900"
+              title={`Backend: ${backendUrl}`}
+            >
+              ⚙️ Backend
+            </button>
+          )}
           {token ? (
             <button onClick={() => { localStorage.clear(); window.location.href = '/login'; }} className="text-red-700">Logout</button>
           ) : (
