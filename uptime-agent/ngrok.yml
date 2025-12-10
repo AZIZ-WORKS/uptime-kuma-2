@@ -5,6 +5,9 @@ tunnels:
   agent:
     proto: http
     addr: agent:5000
+    request_header:
+      add:
+        - "ngrok-skip-browser-warning: true"
   kuma:
     proto: http
     addr: kuma:3001

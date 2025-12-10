@@ -63,7 +63,8 @@ function parseTimeRange(range) {
   return { start: now - seconds, end: now };
 }
 
-// Get speedtest data (download/upload/ping)
+// Get speedtest data (download/upload/ping) from agent via Prometheus
+// Data flow: Agent (van) → Prometheus → Backend API → Frontend
 router.get('/speedtest', requireAuth(['admin', 'engineer', 'viewer']), async (req, res) => {
   const { vanId, range = '1h' } = req.query;
   
@@ -74,10 +75,12 @@ router.get('/speedtest', requireAuth(['admin', 'engineer', 'viewer']), async (re
   const { start, end } = parseTimeRange(range);
   
   try {
+    // IMPORTANT: Only query data from agent with van_id filter
+    // This ensures we ONLY get data from the agent (van), not from main dashboard
     const [downloadResult, uploadResult, pingResult] = await Promise.all([
-      queryPrometheus(`van_speedtest_download_mbps{van_id="${vanId}"}`, start, end, '1m'),
-      queryPrometheus(`van_speedtest_upload_mbps{van_id="${vanId}"}`, start, end, '1m'),
-      queryPrometheus(`van_speedtest_ping_ms{van_id="${vanId}"}`, start, end, '1m')
+      queryPrometheus(`van_speedtest_download_mbps{van_id="${vanId}",instance=~".*prometheus-proxy.*"}`, start, end, '1m'),
+      queryPrometheus(`van_speedtest_upload_mbps{van_id="${vanId}",instance=~".*prometheus-proxy.*"}`, start, end, '1m'),
+      queryPrometheus(`van_speedtest_ping_ms{van_id="${vanId}",instance=~".*prometheus-proxy.*"}`, start, end, '1m')
     ]);
     
     // Merge results by timestamp
@@ -108,7 +111,8 @@ router.get('/speedtest', requireAuth(['admin', 'engineer', 'viewer']), async (re
   }
 });
 
-// Get per-interface bandwidth data
+// Get per-interface bandwidth data from agent via Prometheus
+// Data flow: Agent (van) → Prometheus → Backend API → Frontend
 router.get('/interfaces', requireAuth(['admin', 'engineer', 'viewer']), async (req, res) => {
   const { vanId, range = '5m' } = req.query;
   
@@ -119,9 +123,10 @@ router.get('/interfaces', requireAuth(['admin', 'engineer', 'viewer']), async (r
   const { start, end } = parseTimeRange(range);
   
   try {
+    // IMPORTANT: Only query data from agent with van_id filter
     const [downloadResult, uploadResult] = await Promise.all([
-      queryPrometheus(`van_interface_download_mbps{van_id="${vanId}"}`, start, end, '5s'),
-      queryPrometheus(`van_interface_upload_mbps{van_id="${vanId}"}`, start, end, '5s')
+      queryPrometheus(`van_interface_download_mbps{van_id="${vanId}",instance=~".*prometheus-proxy.*"}`, start, end, '5s'),
+      queryPrometheus(`van_interface_upload_mbps{van_id="${vanId}",instance=~".*prometheus-proxy.*"}`, start, end, '5s')
     ]);
     
     // Group by interface
@@ -185,7 +190,8 @@ router.get('/interfaces', requireAuth(['admin', 'engineer', 'viewer']), async (r
   }
 });
 
-// Get current/latest values
+// Get current/latest values from agent via Prometheus
+// Data flow: Agent (van) → Prometheus → Backend API → Frontend
 router.get('/current', requireAuth(['admin', 'engineer', 'viewer']), async (req, res) => {
   const { vanId } = req.query;
   
@@ -194,10 +200,11 @@ router.get('/current', requireAuth(['admin', 'engineer', 'viewer']), async (req,
   }
   
   try {
+    // IMPORTANT: Only query data from agent with van_id filter
     const [downloadResult, uploadResult, pingResult] = await Promise.all([
-      queryPrometheusInstant(`van_speedtest_download_mbps{van_id="${vanId}"}`),
-      queryPrometheusInstant(`van_speedtest_upload_mbps{van_id="${vanId}"}`),
-      queryPrometheusInstant(`van_speedtest_ping_ms{van_id="${vanId}"}`)
+      queryPrometheusInstant(`van_speedtest_download_mbps{van_id="${vanId}",instance=~".*prometheus-proxy.*"}`),
+      queryPrometheusInstant(`van_speedtest_upload_mbps{van_id="${vanId}",instance=~".*prometheus-proxy.*"}`),
+      queryPrometheusInstant(`van_speedtest_ping_ms{van_id="${vanId}",instance=~".*prometheus-proxy.*"}`)
     ]);
     
     const current = {
@@ -210,6 +217,71 @@ router.get('/current', requireAuth(['admin', 'engineer', 'viewer']), async (req,
   } catch (err) {
     console.error('Failed to fetch current metrics:', err);
     res.status(500).json({ error: 'Failed to fetch metrics' });
+  }
+});
+
+// Get location data from agent via Prometheus
+router.get('/location', requireAuth(['admin', 'engineer', 'viewer']), async (req, res) => {
+  const { vanId } = req.query;
+  
+  if (!vanId) {
+    return res.status(400).json({ error: 'vanId required' });
+  }
+  
+  try {
+    // IMPORTANT: Only query location from agent with van_id filter
+    // This ensures we ONLY get location from the agent (van), not from main dashboard
+    const [infoResult, latResult, lonResult] = await Promise.all([
+      queryPrometheusInstant(`van_location_info{van_id="${vanId}",instance=~".*prometheus-proxy.*"}`),
+      queryPrometheusInstant(`van_location_latitude{van_id="${vanId}",instance=~".*prometheus-proxy.*"}`),
+      queryPrometheusInstant(`van_location_longitude{van_id="${vanId}",instance=~".*prometheus-proxy.*"}`)
+    ]);
+    
+    // Check if we have any location data
+    const hasInfo = infoResult && infoResult.length > 0;
+    const hasLat = latResult && latResult.length > 0 && latResult[0]?.value?.[1];
+    const hasLon = lonResult && lonResult.length > 0 && lonResult[0]?.value?.[1];
+    
+    if (!hasLat && !hasLon && !hasInfo) {
+      return res.json({
+        latitude: null,
+        longitude: null,
+        city: null,
+        country: null,
+        country_code: null,
+        region: null,
+        public_ip: null,
+        timezone: null,
+        isp: null,
+        zip: null,
+        error: 'No location data available from agent yet'
+      });
+    }
+    
+    const infoMetric = infoResult[0]?.metric || {};
+    const lat = hasLat ? parseFloat(latResult[0].value[1]) : null;
+    const lon = hasLon ? parseFloat(lonResult[0].value[1]) : null;
+    
+    const location = {
+      latitude: lat,
+      longitude: lon,
+      city: infoMetric.city || null,
+      country: infoMetric.country || null,
+      country_code: infoMetric.country_code || null,
+      region: infoMetric.region || null,
+      public_ip: infoMetric.public_ip || null,
+      timezone: infoMetric.timezone || null,
+      isp: infoMetric.isp || null,
+      zip: infoMetric.zip || null,
+    };
+    
+    res.json(location);
+  } catch (err) {
+    console.error('Failed to fetch location metrics:', err);
+    res.status(500).json({ 
+      error: 'Failed to fetch location metrics',
+      details: err.message 
+    });
   }
 });
 

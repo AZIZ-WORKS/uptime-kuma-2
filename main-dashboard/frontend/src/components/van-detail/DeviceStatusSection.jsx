@@ -24,10 +24,43 @@ export default function DeviceStatusSection({ vanId }) {
     async function loadLatest() {
       const token = localStorage.getItem('token');
       try {
-        const { data } = await axios.get(`${getApiBase()}/api/devices/latest?vanId=${encodeURIComponent(vanId)}`, {
+        // First try to get devices from database (latest from agent updates)
+        const { data: dbDevices } = await axios.get(`${getApiBase()}/api/devices/latest?vanId=${encodeURIComponent(vanId)}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setDevices(Array.isArray(data) ? data : []);
+        
+        // Also try to fetch directly from Kuma status page API for complete list
+        try {
+          // Get van info to find kuma_status_url
+          const { data: vans } = await axios.get(`${getApiBase()}/api/vans`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const van = Array.isArray(vans) ? vans.find(v => v.id === vanId) : null;
+          
+          if (van && van.kuma_status_url) {
+            const { data: kumaDevices } = await axios.get(`${getApiBase()}/api/devices/from-kuma`, {
+              params: { vanId, kumaStatusUrl: van.kuma_status_url },
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            
+            // Merge: prefer Kuma API data (more complete), fallback to DB data
+            if (Array.isArray(kumaDevices) && kumaDevices.length > 0) {
+              setDevices(kumaDevices);
+            } else if (Array.isArray(dbDevices) && dbDevices.length > 0) {
+              setDevices(dbDevices);
+            } else {
+              setDevices([]);
+            }
+          } else {
+            // No Kuma URL, use DB data
+            setDevices(Array.isArray(dbDevices) ? dbDevices : []);
+          }
+        } catch (kumaErr) {
+          console.warn('Failed to fetch from Kuma API, using DB data:', kumaErr);
+          // Fallback to DB data if Kuma API fails
+          setDevices(Array.isArray(dbDevices) ? dbDevices : []);
+        }
+        
         setLoading(false);
       } catch (err) {
         console.warn('Failed to load devices:', err);
@@ -92,7 +125,9 @@ export default function DeviceStatusSection({ vanId }) {
                     {isOnline ? 'Connected' : 'Disconnected'}
                   </span></div>
                   <div className="mt-1">Latency: {d.latency || 0}ms</div>
-                  <div className="mt-1 text-gray-500">{new Date(d.timestamp).toLocaleTimeString()}</div>
+                  <div className="mt-1 text-gray-500">
+                    {d.timestamp ? new Date(d.timestamp).toLocaleTimeString() : 'Just now'}
+                  </div>
                 </div>
               </div>
             );

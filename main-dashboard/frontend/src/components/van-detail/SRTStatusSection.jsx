@@ -116,7 +116,7 @@ export default function SRTStatusSection({ vanId }) {
           </div>
           {srtStatus.lastCheck && (
             <div className="text-xs text-gray-500 mt-2">
-              Last checked: {srtStatus.lastCheck.toLocaleTimeString()}
+              Last checked: {srtStatus.lastCheck instanceof Date ? srtStatus.lastCheck.toLocaleTimeString() : new Date(srtStatus.lastCheck).toLocaleTimeString()}
             </div>
           )}
         </div>

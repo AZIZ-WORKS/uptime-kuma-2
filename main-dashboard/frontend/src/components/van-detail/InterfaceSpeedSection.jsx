@@ -16,6 +16,8 @@ function getApiBase() {
   }
 }
 
+// InterfaceSpeedSection: Displays interface bandwidth data from the agent (van)
+// Data flow: Agent (van) → Prometheus → Backend API → Frontend
 export default function InterfaceSpeedSection({ vanId }) {
   const [interfaceData, setInterfaceData] = useState({});
   const [loading, setLoading] = useState(true);

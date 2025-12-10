@@ -15,6 +15,8 @@ function getApiBase() {
   }
 }
 
+// LocationSection: Displays van location data from the agent (van)
+// Data flow: Agent (van) → Prometheus → Backend API → Frontend
 export default function LocationSection({ vanId }) {
   const [location, setLocation] = useState({ latitude: null, longitude: null, city: null, country: null, public_ip: null });
   const [loading, setLoading] = useState(true);
@@ -23,52 +25,45 @@ export default function LocationSection({ vanId }) {
     async function loadLocation() {
       const token = localStorage.getItem('token');
       try {
-        // Query Prometheus via backend proxy (if available) or directly
-        // Try backend API first
-        try {
-          // You may need to add a location endpoint to backend
-          // For now, try querying Prometheus directly if accessible
-          const prometheusUrl = window.location.hostname === 'localhost' 
-            ? 'http://localhost:9090' 
-            : `${getApiBase().replace(':4000', ':9090')}`;
-          
-          const response = await fetch(`${prometheusUrl}/api/v1/query?query=van_location_info{van_id="${vanId}"}`);
-          const data = await response.json();
-          
-          if (data.status === 'success' && data.data?.result?.length > 0) {
-            const metric = data.data.result[0].metric;
-            const latResponse = await fetch(`${prometheusUrl}/api/v1/query?query=van_location_latitude{van_id="${vanId}"}`);
-            const lonResponse = await fetch(`${prometheusUrl}/api/v1/query?query=van_location_longitude{van_id="${vanId}"}`);
-            
-            const latData = await latResponse.json();
-            const lonData = await lonResponse.json();
-            
-            const lat = latData.data?.result?.[0]?.value?.[1];
-            const lon = lonData.data?.result?.[0]?.value?.[1];
-            
-            setLocation({
-              latitude: lat ? parseFloat(lat) : null,
-              longitude: lon ? parseFloat(lon) : null,
-              city: metric.city || null,
-              country: metric.country || null,
-              public_ip: metric.public_ip || null,
-            });
-          }
-        } catch (promErr) {
-          console.warn('Failed to query Prometheus directly:', promErr);
+        // Query location via backend API (which queries Prometheus, which scrapes from agent/van)
+        const response = await axios.get(`${getApiBase()}/api/metrics/location`, {
+          params: { vanId },
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        
+        if (response.data) {
+          setLocation({
+            latitude: response.data.latitude !== null && response.data.latitude !== undefined 
+              ? parseFloat(response.data.latitude) 
+              : null,
+            longitude: response.data.longitude !== null && response.data.longitude !== undefined 
+              ? parseFloat(response.data.longitude) 
+              : null,
+            city: response.data.city || null,
+            country: response.data.country || null,
+            public_ip: response.data.public_ip || null,
+            region: response.data.region || null,
+            timezone: response.data.timezone || null,
+            isp: response.data.isp || null,
+            error: response.data.error || null,
+          });
         }
         
         setLoading(false);
       } catch (err) {
-        console.warn('Failed to load location:', err);
+        console.warn('Failed to load location from agent:', err);
         setLoading(false);
       }
     }
 
+    // Load immediately
     loadLocation();
     
-    // Refresh every 60 seconds
-    const interval = setInterval(loadLocation, 60000);
+    // Refresh every 60 seconds to get latest location from agent
+    const interval = setInterval(() => {
+      loadLocation();
+    }, 60000);
+    
     return () => clearInterval(interval);
   }, [vanId]);
 
@@ -120,7 +115,19 @@ export default function LocationSection({ vanId }) {
           )}
         </div>
       ) : (
-        <div className="text-gray-500 text-center py-8">Location data not available</div>
+        <div className="text-gray-500 text-center py-8">
+          {location.error ? (
+            <div>
+              <p className="text-sm">{location.error}</p>
+              <p className="text-xs mt-2">Waiting for agent to send location data...</p>
+            </div>
+          ) : (
+            <div>
+              <p>Location data not available</p>
+              <p className="text-xs mt-2">Make sure the agent is running and sending location metrics</p>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

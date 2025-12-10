@@ -1,6 +1,6 @@
 [
   {
-    "targets": ["fumelike-anabel-sandier.ngrok-free.dev"],
+    "targets": ["prometheus-proxy:8081"],
     "labels": {
       "job": "vans",
       "van_id": "van1"

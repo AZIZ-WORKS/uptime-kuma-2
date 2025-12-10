@@ -15,15 +15,14 @@ scrape_configs:
   # For now, we'll configure van targets manually or via file_sd_configs
   # File-based service discovery (more flexible)
   - job_name: 'vans-file'
-    scheme: https  # Use HTTPS for ngrok URLs
+    scheme: http  # Use HTTP to proxy (proxy adds ngrok header)
     metrics_path: '/metrics'  # Explicit metrics path
     file_sd_configs:
       - files:
           - '/etc/prometheus/targets.json'
         refresh_interval: 30s
-    # Allow insecure TLS for ngrok (optional, remove if you have proper certs)
-    tls_config:
-      insecure_skip_verify: true
+    # Note: targets.json should point to prometheus-proxy:8081
+    # The proxy adds ngrok-skip-browser-warning header
 
 
 
