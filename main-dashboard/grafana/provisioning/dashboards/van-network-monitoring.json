@@ -1,0 +1,644 @@
+{
+  "id": null,
+  "uid": "van-network-monitoring",
+  "title": "OB Van Network Monitoring",
+  "tags": [
+    "network",
+    "vans",
+    "monitoring"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "10s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "editable": true,
+  "graphTooltip": 0,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Van Locations",
+      "type": "geomap",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 10
+      },
+      "datasource": {
+        "type": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "van_location_latitude",
+          "refId": "A",
+          "format": "table",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "type": "prometheus"
+          }
+        },
+        {
+          "expr": "van_location_longitude",
+          "refId": "B",
+          "format": "table",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "type": "prometheus"
+          }
+        },
+        {
+          "expr": "van_location_info",
+          "refId": "C",
+          "format": "table",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "type": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": []
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "basemap": {
+          "type": "default",
+          "name": "Default"
+        },
+        "layers": [
+          {
+            "type": "markers",
+            "config": {
+              "style": {
+                "size": {
+                  "fixed": 15,
+                  "min": 5,
+                  "max": 30
+                },
+                "color": {
+                  "fixed": "green"
+                },
+                "opacity": 0.8
+              },
+              "name": "Van Locations",
+              "showLegend": true
+            },
+            "location": {
+              "mode": "coords",
+              "latitude": "Value #A",
+              "longitude": "Value #B"
+            },
+            "tooltip": {
+              "mode": "details"
+            }
+          }
+        ],
+        "view": {
+          "id": "zero",
+          "lat": 0,
+          "lon": 0,
+          "zoom": 2
+        },
+        "controls": {
+          "showZoom": true,
+          "showAttribution": true,
+          "showScale": true,
+          "showMeasure": true,
+          "showDebug": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "Value #A": "latitude",
+              "Value #B": "longitude",
+              "van_id #A": "van_id",
+              "van_id #B": "van_id",
+              "van_id #C": "van_id",
+              "public_ip #C": "public_ip",
+              "country #C": "country",
+              "city #C": "city"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Van Internet Speed (Speedtest)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "van_speedtest_download_mbps",
+          "legendFormat": "{{van_id}} - Download (Mbps)",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "type": "prometheus"
+          }
+        },
+        {
+          "expr": "van_speedtest_upload_mbps",
+          "legendFormat": "{{van_id}} - Upload (Mbps)",
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "type": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Mbps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "insertNulls": false,
+            "showPoints": "never",
+            "pointSize": 5,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Van Ping Latency",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "van_speedtest_ping_ms",
+          "legendFormat": "{{van_id}} - Ping (ms)",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "type": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "insertNulls": false,
+            "showPoints": "never",
+            "pointSize": 5,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Interface Download Speed (Real-time)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "van_interface_download_mbps",
+          "legendFormat": "{{van_id}} - {{interface}} ({{ip}}) - Download",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "type": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Mbps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "insertNulls": false,
+            "showPoints": "never",
+            "pointSize": 5,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Interface Upload Speed (Real-time)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "van_interface_upload_mbps",
+          "legendFormat": "{{van_id}} - {{interface}} ({{ip}}) - Upload",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "type": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Mbps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "insertNulls": false,
+            "showPoints": "never",
+            "pointSize": 5,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Current Download Speed",
+      "type": "stat",
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "van_speedtest_download_mbps",
+          "legendFormat": "{{van_id}}",
+          "refId": "A",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "type": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Mbps",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "red"
+              },
+              {
+                "value": 10,
+                "color": "yellow"
+              },
+              {
+                "value": 50,
+                "color": "green"
+              }
+            ]
+          },
+          "mappings": [],
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "options": {
+        "graphMode": "area",
+        "colorMode": "value",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "value_and_name",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 7,
+      "title": "Current Upload Speed",
+      "type": "stat",
+      "gridPos": {
+        "x": 6,
+        "y": 26,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "van_speedtest_upload_mbps",
+          "legendFormat": "{{van_id}}",
+          "refId": "A",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "type": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Mbps",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "red"
+              },
+              {
+                "value": 5,
+                "color": "yellow"
+              },
+              {
+                "value": 20,
+                "color": "green"
+              }
+            ]
+          },
+          "mappings": [],
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "options": {
+        "graphMode": "area",
+        "colorMode": "value",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "value_and_name",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 8,
+      "title": "Current Ping",
+      "type": "stat",
+      "gridPos": {
+        "x": 12,
+        "y": 26,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "van_speedtest_ping_ms",
+          "legendFormat": "{{van_id}}",
+          "refId": "A",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "type": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 50,
+                "color": "yellow"
+              },
+              {
+                "value": 100,
+                "color": "red"
+              }
+            ]
+          },
+          "mappings": [],
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "options": {
+        "graphMode": "area",
+        "colorMode": "value",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "value_and_name",
+        "wideLayout": true
+      }
+    }
+  ]
+}

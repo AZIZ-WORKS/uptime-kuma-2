@@ -24,6 +24,12 @@ services:
       - KUMA_STATUS_PAGE_SLUG=${KUMA_STATUS_PAGE_SLUG:-ob1test}
       - KUMA_PUBLIC_URL=${KUMA_PUBLIC_URL}
       - AGENT_PUBLIC_URL=${AGENT_PUBLIC_URL}
+      # OPNsense API Configuration
+      - USE_OPNSENSE=${USE_OPNSENSE:-false}
+      - OPNSENSE_URL=${OPNSENSE_URL}
+      - OPNSENSE_API_KEY=${OPNSENSE_API_KEY}
+      - OPNSENSE_API_SECRET=${OPNSENSE_API_SECRET}
+      - OPNSENSE_INTERFACES=${OPNSENSE_INTERFACES:-wan,lan}
     depends_on:
       - kuma
     ports:

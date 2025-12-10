@@ -1,53 +1,35 @@
 import { execSync } from 'child_process';
-import os from 'os';
 import fs from 'fs';
 import axios from 'axios';
+import { getAllInterfacesTraffic, calculateBandwidthSpeed } from './opnsense-client.js';
 
 const VAN_ID = process.env.VAN_ID || 'van1';
 const METRICS_FILE = '/tmp/network-metrics.txt';
 const SPEEDTEST_INTERVAL = parseInt(process.env.SPEEDTEST_INTERVAL || '300000'); // 5 minutes default
 const GEOLOCATION_INTERVAL = parseInt(process.env.GEOLOCATION_INTERVAL || '600000'); // 10 minutes default
+const USE_OPNSENSE = process.env.USE_OPNSENSE === 'true' || 
+                     (process.env.OPNSENSE_URL && process.env.OPNSENSE_API_KEY && process.env.OPNSENSE_API_SECRET);
 
-// Get network interfaces and their stats
-function getNetworkStats() {
-  const interfaces = os.networkInterfaces();
-  const stats = [];
-  
-  for (const [name, addrs] of Object.entries(interfaces)) {
-    // Skip loopback
-    if (name === 'lo' || name.startsWith('lo')) continue;
-    
-    const ipv4 = addrs.find(addr => addr.family === 'IPv4');
-    if (!ipv4) continue;
-    
-    try {
-      // Try to get interface stats from /proc/net/dev (Linux)
-      if (fs.existsSync('/proc/net/dev')) {
-        const netDev = fs.readFileSync('/proc/net/dev', 'utf-8');
-        const lines = netDev.split('\n');
-        
-        for (const line of lines) {
-          if (line.includes(name + ':')) {
-            const parts = line.trim().split(/\s+/);
-            const rxBytes = parseInt(parts[1]) || 0;
-            const txBytes = parseInt(parts[9]) || 0;
-            
-            stats.push({
-              interface: name,
-              ip: ipv4.address,
-              rx_bytes: rxBytes,
-              tx_bytes: txBytes,
-              timestamp: Date.now()
-            });
-          }
-        }
-      }
-    } catch (err) {
-      console.warn(`Failed to read stats for ${name}:`, err.message);
-    }
+// Get network interfaces and their stats from OPNsense API
+async function getNetworkStats() {
+  if (!USE_OPNSENSE) {
+    console.warn('OPNsense API not configured, returning empty stats');
+    return [];
   }
-  
-  return stats;
+
+  try {
+    const trafficData = await getAllInterfacesTraffic();
+    return trafficData.map(data => ({
+      interface: data.interface,
+      ip: data.ip || data.ip_address || 'unknown',
+      bytes_in: data.bytes_in || data.inbytes || data.bytes_in_total || 0,
+      bytes_out: data.bytes_out || data.outbytes || data.bytes_out_total || 0,
+      timestamp: data.timestamp || Date.now()
+    }));
+  } catch (err) {
+    console.error('Failed to get OPNsense network stats:', err.message);
+    return [];
+  }
 }
 
 // Get public IP address
@@ -119,10 +101,10 @@ async function runSpeedtest() {
   }
 }
 
-// Calculate bandwidth usage per second
+// Calculate bandwidth usage per second from OPNsense data
 let previousStats = null;
-function calculateBandwidth() {
-  const currentStats = getNetworkStats();
+async function calculateBandwidth() {
+  const currentStats = await getNetworkStats();
   
   if (!previousStats || previousStats.length === 0) {
     previousStats = currentStats;
@@ -135,19 +117,12 @@ function calculateBandwidth() {
     const previous = previousStats.find(s => s.interface === current.interface);
     if (!previous) continue;
     
-    const timeDiff = (current.timestamp - previous.timestamp) / 1000; // seconds
-    if (timeDiff <= 0) continue;
-    
-    const rxSpeed = (current.rx_bytes - previous.rx_bytes) / timeDiff; // bytes/sec
-    const txSpeed = (current.tx_bytes - previous.tx_bytes) / timeDiff; // bytes/sec
+    const speed = calculateBandwidthSpeed(previous, current);
     
     bandwidth.push({
       interface: current.interface,
       ip: current.ip,
-      download_bps: Math.round(rxSpeed),
-      upload_bps: Math.round(txSpeed),
-      download_mbps: Math.round(rxSpeed / 1000000 * 100) / 100,
-      upload_mbps: Math.round(txSpeed / 1000000 * 100) / 100,
+      ...speed,
       timestamp: current.timestamp
     });
   }
@@ -236,8 +211,8 @@ async function startMonitoring() {
   setTimeout(getGeolocationPeriodic, 10000); // Wait 10s on startup
   
   // Monitor bandwidth every 5 seconds
-  setInterval(() => {
-    latestBandwidth = calculateBandwidth();
+  setInterval(async () => {
+    latestBandwidth = await calculateBandwidth();
     
     // Write metrics to file for Prometheus
     const metrics = exportPrometheusMetrics(latestSpeedtest, latestBandwidth, latestGeolocation);

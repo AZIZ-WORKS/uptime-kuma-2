@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Vans from './pages/Vans.jsx';
+import VanDetail from './pages/VanDetail.jsx';
 import NavBar from './components/NavBar.jsx';
 import BackendUrlSetup from './components/BackendUrlSetup.jsx';
 
@@ -51,6 +52,7 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<Protected><Dashboard /></Protected>} />
           <Route path="/vans" element={<Protected><Vans /></Protected>} />
+          <Route path="/vans/:vanId" element={<Protected><VanDetail /></Protected>} />
         </Routes>
       </div>
     </div>

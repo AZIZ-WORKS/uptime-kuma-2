@@ -9,10 +9,13 @@ services:
       - JWT_SECRET=${JWT_SECRET:-devsecret}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
       - DB_PATH=/data/database.sqlite
+      - PROMETHEUS_URL=http://prometheus:9090
     volumes:
       - dashboard-data:/data
     ports:
       - '4000:4000'
+    depends_on:
+      - prometheus
 
   frontend:
     build:
@@ -43,8 +46,6 @@ services:
       - '--storage.tsdb.path=/prometheus'
     ports:
       - '9090:9090'
-    depends_on:
-      - backend
 
   grafana:
     image: grafana/grafana:latest
@@ -64,6 +65,15 @@ services:
       - '3000:3000'
     depends_on:
       - prometheus
+
+  ngrok-proxy:
+    image: nginx:alpine
+    container_name: ngrok-proxy
+    restart: unless-stopped
+    volumes:
+      - ./nginx-ngrok-proxy.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - '8080:8080'
 
   ngrok:
     image: ngrok/ngrok:latest

@@ -1,0 +1,194 @@
+{
+  "id": null,
+  "uid": "van-overview",
+  "title": "OB Van Overview",
+  "tags": [
+    "vans",
+    "overview"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "title": "All Vans - Download Speed",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "van_speedtest_download_mbps",
+          "legendFormat": "{{van_id}}",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "type": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Mbps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "spanNulls": false,
+            "insertNulls": false,
+            "showPoints": "never",
+            "pointSize": 5,
+            "axisPlacement": "auto"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "All Vans - Upload Speed",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "van_speedtest_upload_mbps",
+          "legendFormat": "{{van_id}}",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "type": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Mbps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "spanNulls": false,
+            "insertNulls": false,
+            "showPoints": "never",
+            "pointSize": 5,
+            "axisPlacement": "auto"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "All Vans - Ping Latency",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "van_speedtest_ping_ms",
+          "legendFormat": "{{van_id}}",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "type": "prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "spanNulls": false,
+            "insertNulls": false,
+            "showPoints": "never",
+            "pointSize": 5,
+            "axisPlacement": "auto"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        }
+      }
+    }
+  ]
+}

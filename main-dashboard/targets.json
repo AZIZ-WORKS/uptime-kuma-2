@@ -1,8 +1,9 @@
 [
   {
-    "targets": [],
+    "targets": ["fumelike-anabel-sandier.ngrok-free.dev"],
     "labels": {
-      "job": "vans"
+      "job": "vans",
+      "van_id": "van1"
     }
   }
 ]
